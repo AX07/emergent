@@ -177,15 +177,13 @@ export const getSpendingByCategory = () => {
 };
 
 export const getMonthlySpending = () => {
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
+  // For demo purposes, calculate spending from January 2025 transactions
   return mockTransactions
     .filter(t => {
       const transactionDate = new Date(t.date);
       return t.amount < 0 && 
-             transactionDate.getMonth() === currentMonth && 
-             transactionDate.getFullYear() === currentYear;
+             transactionDate.getMonth() === 0 && // January is month 0
+             transactionDate.getFullYear() === 2025;
     })
     .reduce((total, t) => total + Math.abs(t.amount), 0);
 };
