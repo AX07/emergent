@@ -5,7 +5,7 @@ from pydantic import validator
 import uuid
 
 class TransactionBase(BaseModel):
-    date: date
+    date: str  # Store as string in YYYY-MM-DD format
     description: str
     amount: float  # negative for expenses, positive for income
     category: str
