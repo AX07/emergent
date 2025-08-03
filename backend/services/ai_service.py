@@ -15,7 +15,7 @@ class AIService:
             raise ValueError("GOOGLE_GEMINI_API_KEY environment variable is required")
         
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         
     async def process_chat_message(self, message: str, context: Optional[Dict] = None) -> str:
         """Process a chat message with financial context."""
