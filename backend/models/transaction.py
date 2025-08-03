@@ -26,5 +26,11 @@ class Transaction(TransactionBase):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+    @validator('date', pre=True)
+    def convert_date_to_string(cls, v):
+        if isinstance(v, date):
+            return v.strftime('%Y-%m-%d')
+        return v
+
     class Config:
         from_attributes = True
