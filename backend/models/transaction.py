@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, date
+from pydantic import validator
 import uuid
 
 class TransactionBase(BaseModel):
