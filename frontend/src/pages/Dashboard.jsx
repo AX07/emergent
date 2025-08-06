@@ -2,30 +2,27 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { TrendingUp, DollarSign, ArrowUpIcon, ArrowDownIcon } from 'lucide-react';
-import { 
-  getTotalAssets, 
-  getMonthlySpending, 
-  mockPortfolioData, 
-  getRecentTransactions, 
-  getAssetAllocation 
-} from '../data/mock';
+import { useAccounts, useTransactions, useAnalytics, usePortfolioHistory } from '../hooks/useAPI';
+import { formatCurrency, calculateTotalAssets, getRecentTransactions } from '../services/api';
 
 const Dashboard = () => {
-  const totalAssets = getTotalAssets();
-  const monthlySpending = getMonthlySpending();
-  const recentTransactions = getRecentTransactions();
-  const assetAllocation = getAssetAllocation();
+  const { accounts, loading: accountsLoading } = useAccounts();
+  const { transactions, loading: transactionsLoading } = useTransactions();
+  const { analytics, loading: analyticsLoading } = useAnalytics();
+  const { portfolioData } = usePortfolioHistory();
   
-  const portfolioGrowth = ((583500 - 520000) / 520000 * 100).toFixed(1);
+  // Calculate derived data
+  const totalAssets = calculateTotalAssets(accounts);
+  const monthlySpending = analytics.monthlySpending.total;
+  const recentTransactions = getRecentTransactions(transactions, 5);
+  const assetAllocation = analytics.assetAllocation.allocation;
+  
+  // Calculate portfolio growth (using mock calculation for now)
+  const portfolioGrowth = portfolioData.length >= 2 
+    ? ((portfolioData[portfolioData.length - 1].value - portfolioData[portfolioData.length - 2].value) / portfolioData[portfolioData.length - 2].value * 100).toFixed(1)
+    : 0;
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value);
-  };
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -40,6 +37,49 @@ const Dashboard = () => {
     }
     return null;
   };
+
+  // Loading states
+  const isLoading = accountsLoading || transactionsLoading || analyticsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-100">Dashboard</h1>
+            <p className="text-gray-400 mt-1">Loading your financial overview...</p>
+          </div>
+        </div>
+        
+        {/* Loading skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2].map(i => (
+            <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-700 rounded w-1/3 mb-3"></div>
+                <div className="h-8 bg-gray-700 rounded w-2/3"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-lg p-6">
+            <div className="animate-pulse">
+              <div className="h-6 bg-gray-700 rounded w-1/4 mb-4"></div>
+              <div className="h-64 bg-gray-700 rounded"></div>
+            </div>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+            <div className="animate-pulse">
+              <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
+              <div className="h-64 bg-gray-700 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -79,7 +119,7 @@ const Dashboard = () => {
             <div className="text-2xl font-bold text-gray-100">{formatCurrency(monthlySpending)}</div>
             <div className="flex items-center text-sm text-red-400 mt-1">
               <ArrowDownIcon className="h-4 w-4 mr-1" />
-              12% increase from last month
+              Monthly spending total
             </div>
           </CardContent>
         </Card>
@@ -95,7 +135,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={mockPortfolioData}>
+                <AreaChart data={portfolioData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis 
                     dataKey="month" 
@@ -178,26 +218,33 @@ const Dashboard = () => {
           <p className="text-sm text-gray-400">Your latest financial activity</p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentTransactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 border border-gray-700">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-gray-100">{transaction.description}</p>
-                    <p className={`font-bold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-400'}`}>
-                      {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4 mt-1">
-                    <p className="text-sm text-gray-400">{new Date(transaction.date).toLocaleDateString()}</p>
-                    <span className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded-full">
-                      {transaction.category}
-                    </span>
+          {recentTransactions.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No transactions found</p>
+              <p className="text-sm text-gray-500">Create some transactions to see them here</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 border border-gray-700">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-gray-100">{transaction.description}</p>
+                      <p className={`font-bold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-400'}`}>
+                        {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1">
+                      <p className="text-sm text-gray-400">{new Date(transaction.date).toLocaleDateString()}</p>
+                      <span className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded-full">
+                        {transaction.category}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
