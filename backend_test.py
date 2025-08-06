@@ -15,7 +15,7 @@ import csv
 import io
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://954ede32-bf2b-4fc5-9268-f70d6b5d83ad.preview.emergentagent.com/api"
+BACKEND_URL = "https://73dec375-74fa-435b-b04c-652d66b377bf.preview.emergentagent.com/api"
 
 class FinTrackBackendTester:
     def __init__(self):
